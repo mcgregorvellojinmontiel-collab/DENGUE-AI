@@ -419,18 +419,30 @@ def preparar_excel_para_modelos(df_excel):
 
         X["HB"] = raw["HB"]
         X["CREATININE"] = raw["CREATININE"]
+
+        # Aplicar la misma imputación usada en la limpieza del dataset.
+        # ALT se utiliza para crear ALT_ALTO, por eso se imputa antes
+        # de calcular el indicador derivado.
+        alt_limpia = raw["ALT"].fillna(26.0)
         X["PCV_ALTO"] = (raw["PCV"] >= 42).astype(int)
         X["PLAQUETAS_BAJAS"] = (raw["PLATELET COUNT"] <= 75000).astype(int)
         X["WBC_ALTO"] = (raw["HIGHEST WBC"] >= 7000).astype(int)
-        X["ALT_ALTO"] = (raw["ALT"] >= 70).astype(int)
+        X["ALT_ALTO"] = (alt_limpia >= 70).astype(int)
         X = X[COLUMNAS]
 
     X = X.apply(pd.to_numeric, errors="coerce")
+
+    # La limpieza original imputó CREATININE con mediana 0.5.
+    # Se aplica también cuando el Excel ya contiene las 18 variables
+    # transformadas o cuando procede de la base original.
+    X["CREATININE"] = X["CREATININE"].fillna(0.5)
+
     if X.isna().any().any():
         columnas_error = X.columns[X.isna().any()].tolist()
         raise ValueError(
-            "Hay valores vacíos o no numéricos en: "
+            "Hay valores vacíos o no numéricos en otras variables: "
             + ", ".join(columnas_error)
+            + ". Revisa el Excel antes de volver a cargarlo."
         )
 
     return X
