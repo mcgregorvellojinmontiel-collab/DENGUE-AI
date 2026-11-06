@@ -200,25 +200,35 @@ div[role="option"]:hover {
     font-weight: 600 !important;
 }
 
-/* =========================
-   BOTONES
-========================= */
+
+/* BOTONES */
 
 .stButton > button,
-.stFormSubmitButton > button {
+.stFormSubmitButton > button,
+[data-testid="stFormSubmitButton"] button {
     background-color: #244B70 !important;
     color: #FFFFFF !important;
-    border: none !important;
+    border: 1px solid #244B70 !important;
     border-radius: 4px !important;
-    font-weight: 500 !important;
-    padding: 9px 18px !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+}
+
+/* Forzar texto blanco dentro del botón */
+
+.stButton > button *,
+.stFormSubmitButton > button *,
+[data-testid="stFormSubmitButton"] button * {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
 }
 
 .stButton > button:hover,
 .stFormSubmitButton > button:hover {
     background-color: #193650 !important;
-    color: #FFFFFF !important;
+    border-color: #193650 !important;
 }
+
 
 /* =========================
    ALERTAS Y PROGRESO
@@ -248,6 +258,27 @@ hr {
 /* =========================
    OCULTAR ELEMENTOS
 ========================= */
+
+
+/* AVISO DE USO ACADEMICO */
+
+.disclaimer {
+    background-color: #F2F5F8 !important;
+    color: #34495E !important;
+    border-left: 4px solid #244B70;
+    padding: 16px 20px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    border-radius: 3px;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.disclaimer strong {
+    color: #193650 !important;
+    font-weight: 600;
+}
+
 
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
@@ -801,12 +832,19 @@ elif pagina == "Predicción":
 
             st.divider()
 
-        st.warning(
-            "Estas predicciones son resultados experimentales "
-            "de modelos académicos. No deben utilizarse para "
-            "diagnosticar, descartar complicaciones ni decidir "
-            "tratamientos médicos."
-        )
+        st.markdown("""
+        <div class="disclaimer">
+
+            <strong>Advertencia:</strong>
+
+            Estas predicciones son resultados experimentales
+            de modelos académicos. No deben utilizarse para
+            diagnosticar, descartar complicaciones ni decidir
+            tratamientos médicos.
+
+        </div>
+        """, unsafe_allow_html=True)
+
 
 
 # =====================================================
