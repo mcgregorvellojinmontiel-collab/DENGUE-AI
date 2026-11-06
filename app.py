@@ -10,7 +10,7 @@ from pathlib import Path
 # =====================================================
 
 st.set_page_config(
-    page_title="DENGUE AI",
+    page_title="Dengue psc",
     page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -378,7 +378,7 @@ METRICAS = pd.DataFrame({
 # =====================================================
 
 st.sidebar.markdown(
-    "# DENGUE AI"
+    "# Dengue psc"
 )
 
 st.sidebar.caption(
@@ -423,7 +423,7 @@ if pagina == "Inicio":
         "PLATAFORMA ACADÉMICA DE ANALÍTICA DE DATOS"
     )
 
-    st.title("DENGUE AI")
+    st.title("Dengue psc")
 
     st.write(
         "Sistema de clasificación predictiva de dengue "
@@ -934,7 +934,7 @@ elif pagina == "Información del proyecto":
     st.title("Información del proyecto")
 
     st.write(
-        "DENGUE AI es una aplicación web académica "
+        "Dengue psc es una aplicación web académica "
         "desarrollada para aplicar técnicas de analítica "
         "de datos y aprendizaje automático."
     )
@@ -1028,7 +1028,7 @@ elif pagina == "Información del proyecto":
     )
 
     st.warning(
-        "DENGUE AI es exclusivamente un prototipo académico. "
+        "Dengue psc es exclusivamente un prototipo académico. "
         "No está validado para diagnóstico, triaje "
         "ni decisiones clínicas."
     )
@@ -1041,7 +1041,7 @@ elif pagina == "Información del proyecto":
 st.divider()
 
 st.caption(
-    "DENGUE AI | Plataforma académica de analítica de datos"
+    "Dengue psc | Plataforma académica de analítica de datos"
 )
 
 st.caption(
