@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import io
 
 from pathlib import Path
 
@@ -345,6 +346,123 @@ COLUMNAS = [
     "WBC_ALTO",
     "ALT_ALTO"
 ]
+
+# =====================================================
+# FUNCIONES PARA PREDICCION MASIVA DESDE EXCEL
+# =====================================================
+
+COLUMNAS_ORIGINALES = {
+    "AGE": "AGE",
+    "GENDER": "GENDER",
+    "DURATION OF FEVER": "DURATION OF FEVER",
+    "HEADACHE": "HEADACHE",
+    "MYALGIA": "MYALGIA",
+    "ABDOMINAL PAIN": "ABDOMINAL PAIN",
+    "RASH": "RASH",
+    "VOMITING": "VOMITING",
+    "BREATHLESSNESS": "BREATHLESSNESS",
+    "BLEEDING": "BLEEDING",
+    "BP AT ADMISSION": "BP AT ADMISSION",
+    "ORGANOMEGALY": "ORGANOMEGALY",
+    "HB": "HB",
+    "PCV": "PCV",
+    "HIGHEST WBC": "HIGHEST WBC",
+    "PLATELET COUNT": "PLATELET COUNT",
+    "ALT": "ALT",
+    "CREATININE": "CREATININE",
+}
+
+
+def preparar_excel_para_modelos(df_excel):
+    """Acepta columnas ya transformadas o el formato de la base original."""
+    df = df_excel.copy()
+    df.columns = (
+        df.columns.astype(str)
+        .str.strip()
+        .str.upper()
+        .str.replace(r"\s+", " ", regex=True)
+    )
+
+    # Formato listo para el modelo: las 18 columnas predictoras.
+    if all(col in df.columns for col in COLUMNAS):
+        X = df[COLUMNAS].copy()
+    else:
+        # Formato de la base original: convierte las variables 1/2
+        # y calcula los indicadores derivados igual que en la predicción individual.
+        requeridas = list(COLUMNAS_ORIGINALES.values())
+        faltantes = [c for c in requeridas if c not in df.columns]
+        if faltantes:
+            raise ValueError(
+                "El Excel no corresponde al formato esperado. "
+                "Faltan columnas: " + ", ".join(faltantes)
+            )
+
+        raw = df[requeridas].copy()
+        for col in requeridas:
+            raw[col] = pd.to_numeric(raw[col], errors="coerce")
+
+        # En la base original: 1/2 se codifican como 0/1.
+        # AGE: 1 = menor de 6 años; 2 = mayor/igual a 6 años.
+        # GENDER: 1 = masculino; 2 = femenino.
+        # Síntomas: 1 = presente; 2 = ausente.
+        X = pd.DataFrame(index=df.index)
+        X["AGE"] = raw["AGE"].map({1: 0, 2: 1})
+        X["GENDER"] = raw["GENDER"].map({1: 0, 2: 1})
+        X["DURATION OF FEVER"] = raw["DURATION OF FEVER"]
+
+        for col in [
+            "HEADACHE", "MYALGIA", "ABDOMINAL PAIN", "RASH",
+            "VOMITING", "BREATHLESSNESS", "BLEEDING",
+            "BP AT ADMISSION", "ORGANOMEGALY"
+        ]:
+            X[col] = raw[col].map({1: 1, 2: 0})
+
+        X["HB"] = raw["HB"]
+        X["CREATININE"] = raw["CREATININE"]
+        X["PCV_ALTO"] = (raw["PCV"] >= 42).astype(int)
+        X["PLAQUETAS_BAJAS"] = (raw["PLATELET COUNT"] <= 75000).astype(int)
+        X["WBC_ALTO"] = (raw["HIGHEST WBC"] >= 7000).astype(int)
+        X["ALT_ALTO"] = (raw["ALT"] >= 70).astype(int)
+        X = X[COLUMNAS]
+
+    X = X.apply(pd.to_numeric, errors="coerce")
+    if X.isna().any().any():
+        columnas_error = X.columns[X.isna().any()].tolist()
+        raise ValueError(
+            "Hay valores vacíos o no numéricos en: "
+            + ", ".join(columnas_error)
+        )
+
+    return X
+
+
+def ejecutar_prediccion_lote(df_excel, modelos_seleccionados):
+    """Devuelve el Excel original con las predicciones agregadas."""
+    X = preparar_excel_para_modelos(df_excel)
+    resultados = df_excel.copy()
+
+    for nombre, modelo in modelos_seleccionados.items():
+        pred = modelo.predict(X).astype(int)
+        probabilidades = modelo.predict_proba(X)
+        clases = list(modelo.classes_)
+        idx_no = clases.index(0)
+        idx_si = clases.index(1)
+
+        sufijo = "LOGISTICA" if nombre == "Regresión logística" else "RED_NEURONAL"
+        resultados[f"CLASIFICACION_{sufijo}"] = [
+            "Dengue complicado" if valor == 1
+            else "Dengue no complicado"
+            for valor in pred
+        ]
+        resultados[f"PROB_NO_COMPLICADO_{sufijo}"] = (
+            probabilidades[:, idx_no] * 100
+        ).round(2)
+        resultados[f"PROB_COMPLICADO_{sufijo}"] = (
+            probabilidades[:, idx_si] * 100
+        ).round(2)
+
+    return resultados
+
 
 METRICAS = pd.DataFrame({
     "Métrica": [
@@ -845,6 +963,124 @@ elif pagina == "Predicción":
         </div>
         """, unsafe_allow_html=True)
 
+
+
+    # =================================================
+    # PREDICCION MASIVA DESDE EXCEL
+    # =================================================
+
+    st.divider()
+    st.subheader("Predicción en lote mediante Excel")
+    st.write(
+        "Cargue un archivo Excel con varios pacientes. "
+        "Puede utilizar la base original o un archivo que ya contenga "
+        "las 18 variables predictoras transformadas."
+    )
+
+    archivo_excel = st.file_uploader(
+        "Seleccionar archivo Excel (.xlsx)",
+        type=["xlsx"],
+        key="carga_excel_lote"
+    )
+
+    modelo_lote = st.selectbox(
+        "Modelo para procesar el archivo",
+        [
+            "Comparar ambos modelos",
+            "Regresión logística",
+            "Red neuronal artificial"
+        ],
+        key="selector_modelo_lote"
+    )
+
+    if archivo_excel is not None:
+        try:
+            vista_excel = pd.read_excel(archivo_excel)
+            st.caption(f"Archivo cargado: {len(vista_excel)} registros.")
+            st.dataframe(vista_excel.head(5), use_container_width=True)
+
+            if st.button(
+                "Predecir todos los registros",
+                type="primary",
+                use_container_width=True,
+                key="btn_predecir_lote"
+            ):
+                if modelo_lote == "Regresión logística":
+                    modelos_lote = {
+                        "Regresión logística": modelo_logistico
+                    }
+                elif modelo_lote == "Red neuronal artificial":
+                    modelos_lote = {
+                        "Red neuronal artificial": modelo_neuronal
+                    }
+                else:
+                    modelos_lote = {
+                        "Regresión logística": modelo_logistico,
+                        "Red neuronal artificial": modelo_neuronal
+                    }
+
+                with st.spinner("Procesando los registros del Excel..."):
+                    resultados_lote = ejecutar_prediccion_lote(
+                        vista_excel, modelos_lote
+                    )
+
+                st.success(
+                    f"Proceso completado: {len(resultados_lote)} "
+                    "registros analizados."
+                )
+                st.dataframe(
+                    resultados_lote,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                # Resumen de clasificación para cada modelo ejecutado.
+                for nombre, modelo in modelos_lote.items():
+                    sufijo = (
+                        "LOGISTICA"
+                        if nombre == "Regresión logística"
+                        else "RED_NEURONAL"
+                    )
+                    columna_clase = f"CLASIFICACION_{sufijo}"
+                    conteos = resultados_lote[columna_clase].value_counts()
+
+                    st.markdown(f"**Resumen: {nombre}**")
+                    c1, c2 = st.columns(2)
+                    c1.metric(
+                        "Dengue no complicado",
+                        int(conteos.get("Dengue no complicado", 0))
+                    )
+                    c2.metric(
+                        "Dengue complicado",
+                        int(conteos.get("Dengue complicado", 0))
+                    )
+
+                salida = io.BytesIO()
+                with pd.ExcelWriter(salida, engine="openpyxl") as writer:
+                    resultados_lote.to_excel(
+                        writer,
+                        index=False,
+                        sheet_name="Predicciones"
+                    )
+
+                st.download_button(
+                    "Descargar resultados en Excel",
+                    data=salida.getvalue(),
+                    file_name="resultados_prediccion_lote.xlsx",
+                    mime=(
+                        "application/vnd.openxmlformats-officedocument."
+                        "spreadsheetml.sheet"
+                    ),
+                    use_container_width=True,
+                    key="descargar_resultado_lote"
+                )
+
+        except Exception as error:
+            st.error(f"No se pudo procesar el archivo: {error}")
+            st.info(
+                "Verifique que el archivo tenga las columnas de la base "
+                "original o las 18 variables predictoras del modelo."
+            )
 
 
 # =====================================================
