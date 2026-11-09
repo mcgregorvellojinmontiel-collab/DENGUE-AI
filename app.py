@@ -369,6 +369,17 @@ html, body, .stApp, button, input, textarea, select,
     align-items: flex-start !important;
 }
 
+
+/* Ocultar los enlaces automáticos que Streamlit agrega junto a los encabezados */
+[data-testid="stHeaderActionElements"],
+.stMarkdown [data-testid="stHeaderActionElements"],
+[data-testid="stHeadingWithActionElements"] a,
+[data-testid="stHeadingWithActionElements"] button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1006,6 +1017,7 @@ with col_resultados:
         st.markdown("""
         <div class="disclaimer">
 
+            <strong>Advertencia:</strong>
 
             Estas estimaciones se generan mediante modelos de clasificación. No deben utilizarse para
             diagnosticar, descartar complicaciones ni decidir
