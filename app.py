@@ -3,21 +3,25 @@ import streamlit as st
 import pandas as pd
 import joblib
 import io
+import base64
 
 from pathlib import Path
 
 # =====================================================
-# 1. CONFIGURACION GENERAL
+# CONFIGURACIÓN GENERAL
 # =====================================================
 
-st.set_page_config(
-    page_title="Dengue psc",
-    page_icon="",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
 BASE_DIR = Path(__file__).resolve().parent
+ASSETS_DIR = BASE_DIR / "assets"
+ICON_PATH = ASSETS_DIR / "healthicon.png"
+BANNER_PATH = ASSETS_DIR / "banner_laboratorio.png"
+
+st.set_page_config(
+    page_title="Modelo de predicción de dengue",
+    page_icon=str(ICON_PATH),
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 # =====================================================
 # 2. ESTILOS VISUALES
@@ -33,7 +37,7 @@ st.markdown("""
 html, body, .stApp {
     background-color: #FFFFFF !important;
     color: #263746 !important;
-    font-family: Arial, sans-serif !important;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif !important;
 }
 
 [data-testid="stAppViewContainer"],
@@ -261,7 +265,7 @@ hr {
 ========================= */
 
 
-/* AVISO DE USO ACADEMICO */
+/* AVISO DE LIMITACIONES DE USO */
 
 .disclaimer {
     background-color: #F2F5F8 !important;
@@ -283,6 +287,87 @@ hr {
 
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
+
+
+/* Ocultar navegación lateral y elementos de interfaz de Streamlit */
+[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+#MainMenu,
+footer {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Evitar margen reservado para la barra lateral */
+[data-testid="stMainBlockContainer"] {
+    padding-top: 1.4rem !important;
+}
+
+/* Controles desplegables siempre en tema claro */
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] div[role="button"],
+[data-baseweb="popover"],
+ul[role="listbox"],
+ul[role="listbox"] li,
+div[role="option"] {
+    background-color: #FFFFFF !important;
+    color: #263746 !important;
+}
+div[data-baseweb="select"] svg {
+    fill: #263746 !important;
+    color: #263746 !important;
+}
+
+/* Botones: fondo verde y texto blanco, incluso en elementos internos */
+.stButton > button,
+.stFormSubmitButton > button,
+[data-testid="stFormSubmitButton"] button,
+[data-testid="stDownloadButton"] button,
+button[kind="primary"],
+button[kind="secondary"] {
+    background: #1769AA !important;
+    background-color: #1769AA !important;
+    border: 1px solid #1769AA !important;
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    opacity: 1 !important;
+    border-radius: 5px !important;
+    font-weight: 600 !important;
+}
+.stButton > button *,
+.stFormSubmitButton > button *,
+[data-testid="stFormSubmitButton"] button *,
+[data-testid="stDownloadButton"] button *,
+button[kind="primary"] *,
+button[kind="secondary"] * {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+.stButton > button:hover,
+.stFormSubmitButton > button:hover,
+[data-testid="stDownloadButton"] button:hover,
+button[kind="primary"]:hover {
+    background: #0F4F86 !important;
+    border-color: #0F4F86 !important;
+}
+
+
+/* Tipografía general de la interfaz */
+html, body, .stApp, button, input, textarea, select,
+[data-testid="stWidgetLabel"], [data-testid="stMarkdownContainer"] {
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif !important;
+}
+
+
+/* Panel de resultados a la derecha */
+[data-testid="stHorizontalBlock"] {
+    align-items: flex-start !important;
+}
 
 </style>
 """, unsafe_allow_html=True)
@@ -504,163 +589,118 @@ METRICAS = pd.DataFrame({
 
 
 # =====================================================
-# 5. ENCABEZADO DE LA APLICACION
-# =====================================================
-
-st.sidebar.markdown(
-    "# Dengue psc"
-)
-
-st.sidebar.caption(
-    "PLATAFORMA DE ANALÍTICA DE DATOS"
-)
-
-st.sidebar.divider()
 
 
 # =====================================================
-# 6. MENU DE NAVEGACION
+# ENCABEZADO Y CONTENIDO PRINCIPAL
 # =====================================================
 
-pagina = st.sidebar.radio(
-    "NAVEGACIÓN",
-    [
-        "Inicio",
-        "Predicción",
-        "Rendimiento de modelos",
-        "Información del proyecto"
-    ]
-)
-
-st.sidebar.divider()
-
-st.sidebar.caption(
-    "Proyecto académico"
-)
-
-st.sidebar.caption(
-    "Aprendizaje automático · Python"
-)
-
-
-# =====================================================
-# 7. PAGINA DE INICIO
-# =====================================================
-
-if pagina == "Inicio":
-
-    st.caption(
-        "PLATAFORMA ACADÉMICA DE ANALÍTICA DE DATOS"
+# Banner a todo lo ancho, conservando la proporción original de la fotografía.
+# object-fit: contain evita recortar cualquier parte de la imagen.
+if BANNER_PATH.exists():
+    banner_b64 = base64.b64encode(BANNER_PATH.read_bytes()).decode("utf-8")
+    st.markdown(
+        f"""
+        <div class="banner-superior">
+            <img
+                src="data:image/png;base64,{banner_b64}"
+                alt="Laboratorio de análisis"
+            />
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    st.title("Dengue psc")
+st.markdown(
+    """
+    <style>
 
+    /* Banner panorámico: menos alto, recortado de forma controlada */
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    .banner-superior {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-top: -3.5rem;
+        margin-bottom: 1.45rem;
+        padding: 0;
+        height: clamp(145px, 16vw, 220px);
+        overflow: hidden;
+        background: #FFFFFF;
+        line-height: 0;
+    }
+    .banner-superior img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 48%;
+        margin: 0;
+    }
+    @media (max-width: 700px) {
+        .banner-superior {
+            height: 145px;
+            margin-bottom: 1.1rem;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <div style="max-width:1100px; margin:0 auto 26px auto;">
+      <div style="color:#1769AA; font-size:12px; font-weight:700;
+                  letter-spacing:1.3px; margin-bottom:8px;">
+        ANÁLISIS DE DATOS · SALUD
+      </div>
+      <h1 style="color:#193650; margin:0 0 14px 0;">
+        Modelo de predicción de dengue
+      </h1>
+      <p style="color:#34495E; font-size:16px; line-height:1.7;">
+        Esta herramienta permite analizar información clínica y de laboratorio
+        relacionada con el dengue y generar estimaciones mediante dos modelos
+        de clasificación: regresión logística y red neuronal artificial.
+      </p>
+      <p style="color:#34495E; font-size:16px; line-height:1.7;">
+        El conjunto de datos utilizado contiene 302 registros después del
+        proceso de depuración. Para el análisis se emplean 18 variables
+        predictoras que incluyen características demográficas, síntomas,
+        hallazgos clínicos y resultados de laboratorio.
+      </p>
+      <p style="color:#34495E; font-size:16px; line-height:1.7;">
+        La plataforma permite ingresar los datos de una persona para obtener
+        una estimación individual o cargar un archivo Excel para procesar
+        varios registros. Los resultados de los modelos pueden consultarse
+        y descargarse para facilitar su revisión.
+      </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+st.divider()
+
+# Área principal: captura a la izquierda y resultados a la derecha.
+col_formulario, col_resultados = st.columns(
+    [1.35, 0.85],
+    gap="large",
+    vertical_alignment="top"
+)
+
+with col_formulario:
+    st.subheader("Predicción individual")
     st.write(
-        "Sistema de clasificación predictiva de dengue "
-        "mediante técnicas de aprendizaje automático."
+        "Ingrese los datos disponibles del paciente para obtener "
+        "las estimaciones de los modelos."
     )
-
-    st.divider()
-
-    st.subheader("Resumen del proyecto")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric(
-        "Registros analizados",
-        "302"
-    )
-
-    col2.metric(
-        "Modelos desarrollados",
-        "2"
-    )
-
-    col3.metric(
-        "Variables predictoras",
-        "18"
-    )
-
-    st.divider()
-
-    st.subheader("Modelos implementados")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.markdown("**Regresión logística**")
-
-        st.write(
-            "Modelo estadístico de clasificación binaria "
-            "que estima la probabilidad de pertenecer "
-            "a la categoría de dengue complicado."
-        )
-
-        st.metric(
-            "Exactitud",
-            "85,25 %"
-        )
-
-        st.write("Área bajo la curva ROC: 96,96 %")
-
-    with col2:
-
-        st.markdown("**Red neuronal artificial**")
-
-        st.write(
-            "Modelo de aprendizaje automático que "
-            "identifica patrones mediante una arquitectura "
-            "de capas neuronales."
-        )
-
-        st.metric(
-            "Exactitud",
-            "77,05 %"
-        )
-
-        st.write("Área bajo la curva ROC: 82,37 %")
-
-    st.divider()
-
-    st.subheader("Objetivo del sistema")
-
-    st.write(
-        "Desarrollar una plataforma que permita analizar "
-        "datos clínicos y de laboratorio de pacientes "
-        "con dengue, utilizando dos modelos de clasificación "
-        "para comparar sus resultados."
-    )
-
-    st.write(
-        "El proyecto contempla la preparación de datos, "
-        "el entrenamiento de modelos de aprendizaje automático "
-        "y la evaluación de su rendimiento."
-    )
-
-    st.divider()
-
-    st.caption(
-        "Nota: herramienta de uso académico. "
-        "Los resultados no constituyen un diagnóstico "
-        "ni sustituyen la valoración de un profesional de salud."
-    )
-
-
-# =====================================================
-# 8. PAGINA DE PREDICCION
-# =====================================================
-
-elif pagina == "Predicción":
-
-    st.title("Predicción")
-
-    st.write(
-        "Ingrese la información del paciente para generar "
-        "una clasificación mediante los modelos entrenados."
-    )
-
-    st.divider()
 
     with st.form("formulario_paciente"):
 
@@ -837,6 +877,7 @@ elif pagina == "Predicción":
     # PROCESAMIENTO DE LA PREDICCION
     # =================================================
 
+with col_resultados:
     if ejecutar:
 
         # Codificación de los datos
@@ -965,10 +1006,8 @@ elif pagina == "Predicción":
         st.markdown("""
         <div class="disclaimer">
 
-            <strong>Advertencia:</strong>
 
-            Estas predicciones son resultados experimentales
-            de modelos académicos. No deben utilizarse para
+            Estas estimaciones se generan mediante modelos de clasificación. No deben utilizarse para
             diagnosticar, descartar complicaciones ni decidir
             tratamientos médicos.
 
@@ -976,323 +1015,124 @@ elif pagina == "Predicción":
         """, unsafe_allow_html=True)
 
 
-
-    # =================================================
-    # PREDICCION MASIVA DESDE EXCEL
-    # =================================================
-
-    st.divider()
-    st.subheader("Predicción en lote mediante Excel")
-    st.write(
-        "Cargue un archivo Excel con varios pacientes. "
-        "Puede utilizar la base original o un archivo que ya contenga "
-        "las 18 variables predictoras transformadas."
-    )
-
-    archivo_excel = st.file_uploader(
-        "Seleccionar archivo Excel (.xlsx)",
-        type=["xlsx"],
-        key="carga_excel_lote"
-    )
-
-    modelo_lote = st.selectbox(
-        "Modelo para procesar el archivo",
-        [
-            "Comparar ambos modelos",
-            "Regresión logística",
-            "Red neuronal artificial"
-        ],
-        key="selector_modelo_lote"
-    )
-
-    if archivo_excel is not None:
-        try:
-            vista_excel = pd.read_excel(archivo_excel)
-            st.caption(f"Archivo cargado: {len(vista_excel)} registros.")
-            st.dataframe(vista_excel.head(5), use_container_width=True)
-
-            if st.button(
-                "Predecir todos los registros",
-                type="primary",
-                use_container_width=True,
-                key="btn_predecir_lote"
-            ):
-                if modelo_lote == "Regresión logística":
-                    modelos_lote = {
-                        "Regresión logística": modelo_logistico
-                    }
-                elif modelo_lote == "Red neuronal artificial":
-                    modelos_lote = {
-                        "Red neuronal artificial": modelo_neuronal
-                    }
-                else:
-                    modelos_lote = {
-                        "Regresión logística": modelo_logistico,
-                        "Red neuronal artificial": modelo_neuronal
-                    }
-
-                with st.spinner("Procesando los registros del Excel..."):
-                    resultados_lote = ejecutar_prediccion_lote(
-                        vista_excel, modelos_lote
-                    )
-
-                st.success(
-                    f"Proceso completado: {len(resultados_lote)} "
-                    "registros analizados."
-                )
-                st.dataframe(
-                    resultados_lote,
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-                # Resumen de clasificación para cada modelo ejecutado.
-                for nombre, modelo in modelos_lote.items():
-                    sufijo = (
-                        "LOGISTICA"
-                        if nombre == "Regresión logística"
-                        else "RED_NEURONAL"
-                    )
-                    columna_clase = f"CLASIFICACION_{sufijo}"
-                    conteos = resultados_lote[columna_clase].value_counts()
-
-                    st.markdown(f"**Resumen: {nombre}**")
-                    c1, c2 = st.columns(2)
-                    c1.metric(
-                        "Dengue no complicado",
-                        int(conteos.get("Dengue no complicado", 0))
-                    )
-                    c2.metric(
-                        "Dengue complicado",
-                        int(conteos.get("Dengue complicado", 0))
-                    )
-
-                salida = io.BytesIO()
-                with pd.ExcelWriter(salida, engine="openpyxl") as writer:
-                    resultados_lote.to_excel(
-                        writer,
-                        index=False,
-                        sheet_name="Predicciones"
-                    )
-
-                st.download_button(
-                    "Descargar resultados en Excel",
-                    data=salida.getvalue(),
-                    file_name="resultados_prediccion_lote.xlsx",
-                    mime=(
-                        "application/vnd.openxmlformats-officedocument."
-                        "spreadsheetml.sheet"
-                    ),
-                    use_container_width=True,
-                    key="descargar_resultado_lote"
-                )
-
-        except Exception as error:
-            st.error(f"No se pudo procesar el archivo: {error}")
-            st.info(
-                "Verifique que el archivo tenga las columnas de la base "
-                "original o las 18 variables predictoras del modelo."
-            )
-
-
-# =====================================================
-# 9. RENDIMIENTO DE LOS MODELOS
-# =====================================================
-
-elif pagina == "Rendimiento de modelos":
-
-    st.title("Rendimiento de modelos")
-
-    st.write(
-        "Comparación de los resultados obtenidos "
-        "por los dos algoritmos durante la evaluación."
-    )
-
-    st.divider()
-
-    st.subheader("Comparación de métricas")
-
-    tabla = METRICAS.copy()
-
-    tabla["Regresión logística"] = (
-        tabla["Regresión logística"] * 100
-    ).map(lambda x: f"{x:.2f} %")
-
-    tabla["Red neuronal"] = (
-        tabla["Red neuronal"] * 100
-    ).map(lambda x: f"{x:.2f} %")
-
-    st.dataframe(
-        tabla,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.divider()
-
-    st.subheader("Representación gráfica")
-
-    grafico = METRICAS.set_index("Métrica")
-
-    st.bar_chart(
-        grafico,
-        y=[
-            "Regresión logística",
-            "Red neuronal"
-        ]
-    )
-
-    st.divider()
-
-    st.subheader("Interpretación de los resultados")
-
-    st.write(
-        "En la evaluación inicial, la regresión logística "
-        "obtuvo mejores resultados que la red neuronal "
-        "en las cinco métricas analizadas."
-    )
-
-    st.write(
-        "**Regresión logística:** obtuvo una exactitud "
-        "de 85,25 %, una sensibilidad de 100 % y un "
-        "AUC de 96,96 %."
-    )
-
-    st.write(
-        "**Red neuronal artificial:** obtuvo una exactitud "
-        "de 77,05 %, una sensibilidad de 76,92 % y un "
-        "AUC de 82,37 %."
-    )
-
-    st.divider()
-
-    st.caption(
-        "Los resultados corresponden a una única partición "
-        "de entrenamiento y prueba de 61 pacientes. "
-        "No representan validación clínica externa."
-    )
-
-
-# =====================================================
-# 10. INFORMACION DEL PROYECTO
-# =====================================================
-
-elif pagina == "Información del proyecto":
-
-    st.title("Información del proyecto")
-
-    st.write(
-        "Dengue psc es una aplicación web académica "
-        "desarrollada para aplicar técnicas de analítica "
-        "de datos y aprendizaje automático."
-    )
-
-    st.divider()
-
-    st.subheader("Objetivo general")
-
-    st.write(
-        "Desarrollar una aplicación web que implemente "
-        "modelos de regresión logística y redes neuronales "
-        "artificiales para clasificar registros de pacientes "
-        "en las categorías de dengue no complicado "
-        "y dengue complicado."
-    )
-
-    st.divider()
-
-    st.subheader("Base de datos")
-
-    st.write(
-        "La base de datos original contiene 303 registros "
-        "y 25 variables. Después del proceso de limpieza "
-        "se conservaron 302 registros y se generaron "
-        "nuevas variables predictoras."
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.markdown("**Distribución de los registros**")
-
-        st.write("Dengue no complicado: 239 pacientes")
-
-        st.write("Dengue complicado: 63 pacientes")
-
-    with col2:
-
-        st.markdown("**Variables utilizadas**")
-
-        st.write("18 variables predictoras")
-
-        st.write("1 variable objetivo")
-
-    st.divider()
-
-    st.subheader("Modelos utilizados")
-
-    st.markdown("**Regresión logística**")
-
-    st.write(
-        "Algoritmo de clasificación supervisada "
-        "utilizado para estimar la probabilidad "
-        "de pertenencia a una categoría."
-    )
-
-    st.markdown("**Red neuronal artificial**")
-
-    st.write(
-        "Modelo de aprendizaje automático basado "
-        "en una red multicapa con 18 variables de entrada, "
-        "dos capas ocultas de 16 y 8 neuronas, "
-        "y una salida de clasificación."
-    )
-
-    st.divider()
-
-    st.subheader("Tecnologías utilizadas")
-
-    st.write(
-        "- Python\n"
-        "- Pandas\n"
-        "- NumPy\n"
-        "- Scikit-learn\n"
-        "- Streamlit\n"
-        "- Joblib\n"
-        "- Matplotlib"
-    )
-
-    st.divider()
-
-    st.subheader("Limitaciones")
-
-    st.write(
-        "El sistema utiliza una base de datos limitada "
-        "y los resultados presentados corresponden "
-        "a una evaluación inicial. Se requiere validación "
-        "adicional para determinar la capacidad de "
-        "generalización de los modelos."
-    )
-
-    st.warning(
-        "Dengue psc es exclusivamente un prototipo académico. "
-        "No está validado para diagnóstico, triaje "
-        "ni decisiones clínicas."
-    )
-
-
-# =====================================================
-# 11. PIE DE PAGINA
-# =====================================================
+# =================================================
+# PREDICCION MASIVA DESDE EXCEL
+# =================================================
 
 st.divider()
-
-st.caption(
-    "Dengue psc | Plataforma académica de analítica de datos"
+st.subheader("Predicción en lote mediante Excel")
+st.write(
+    "Cargue un archivo Excel con varios pacientes. "
+    "Puede utilizar la base original o un archivo que ya contenga "
+    "las 18 variables predictoras transformadas."
 )
 
-st.caption(
-    "Modelos de clasificación: regresión logística "
-    "y redes neuronales artificiales."
+archivo_excel = st.file_uploader(
+    "Seleccionar archivo Excel (.xlsx)",
+    type=["xlsx"],
+    key="carga_excel_lote"
 )
+
+modelo_lote = st.selectbox(
+    "Modelo para procesar el archivo",
+    [
+        "Comparar ambos modelos",
+        "Regresión logística",
+        "Red neuronal artificial"
+    ],
+    key="selector_modelo_lote"
+)
+
+if archivo_excel is not None:
+    try:
+        vista_excel = pd.read_excel(archivo_excel)
+        st.caption(
+            f"Archivo cargado correctamente: {len(vista_excel)} registros. "
+            "Presione el botón para procesarlos."
+        )
+
+        if st.button(
+            "Predecir todos los registros",
+            type="primary",
+            use_container_width=True,
+            key="btn_predecir_lote"
+        ):
+            if modelo_lote == "Regresión logística":
+                modelos_lote = {
+                    "Regresión logística": modelo_logistico
+                }
+            elif modelo_lote == "Red neuronal artificial":
+                modelos_lote = {
+                    "Red neuronal artificial": modelo_neuronal
+                }
+            else:
+                modelos_lote = {
+                    "Regresión logística": modelo_logistico,
+                    "Red neuronal artificial": modelo_neuronal
+                }
+
+            with st.spinner("Procesando los registros del Excel..."):
+                resultados_lote = ejecutar_prediccion_lote(
+                    vista_excel, modelos_lote
+                )
+
+            st.success(
+                f"Proceso completado: {len(resultados_lote)} "
+                "registros analizados."
+            )
+            st.dataframe(
+                resultados_lote,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            # Resumen de clasificación para cada modelo ejecutado.
+            for nombre, modelo in modelos_lote.items():
+                sufijo = (
+                    "LOGISTICA"
+                    if nombre == "Regresión logística"
+                    else "RED_NEURONAL"
+                )
+                columna_clase = f"CLASIFICACION_{sufijo}"
+                conteos = resultados_lote[columna_clase].value_counts()
+
+                st.markdown(f"**Resumen: {nombre}**")
+                c1, c2 = st.columns(2)
+                c1.metric(
+                    "Dengue no complicado",
+                    int(conteos.get("Dengue no complicado", 0))
+                )
+                c2.metric(
+                    "Dengue complicado",
+                    int(conteos.get("Dengue complicado", 0))
+                )
+
+            salida = io.BytesIO()
+            with pd.ExcelWriter(salida, engine="openpyxl") as writer:
+                resultados_lote.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name="Predicciones"
+                )
+
+            st.download_button(
+                "Descargar resultados en Excel",
+                data=salida.getvalue(),
+                file_name="resultados_prediccion_lote.xlsx",
+                mime=(
+                    "application/vnd.openxmlformats-officedocument."
+                    "spreadsheetml.sheet"
+                ),
+                use_container_width=True,
+                key="descargar_resultado_lote"
+            )
+
+    except Exception as error:
+        st.error(f"No se pudo procesar el archivo: {error}")
+        st.info(
+            "Verifique que el archivo tenga las columnas de la base "
+            "original o las 18 variables predictoras del modelo."
+        )
+
+
+# =====================================================
