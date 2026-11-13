@@ -1,6 +1,7 @@
 
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 import joblib
 import io
 import base64
@@ -696,6 +697,94 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# =====================================================
+# ESTADÍSTICAS Y COMPARACIÓN DE LOS MODELOS
+# =====================================================
+
+st.subheader("Tabla comparativa de métricas")
+
+tabla_metricas = METRICAS.copy()
+tabla_metricas["Regresión logística"] = tabla_metricas[
+    "Regresión logística"
+].map(lambda valor: f"{valor * 100:.2f}%")
+tabla_metricas["Red neuronal"] = tabla_metricas[
+    "Red neuronal"
+].map(lambda valor: f"{valor * 100:.2f}%")
+
+st.dataframe(
+    tabla_metricas,
+    use_container_width=True,
+    hide_index=True
+)
+
+st.subheader("Comparación visual de los modelos")
+
+# Gráfica estática de líneas: no incluye menú interactivo ni opción
+# para convertir la visualización en tabla.
+fig, ax = plt.subplots(figsize=(7.2, 3.4), dpi=110)
+
+metricas_eje = METRICAS["Métrica"].tolist()
+valores_logistica = (
+    METRICAS["Regresión logística"].astype(float).to_numpy() * 100
+)
+valores_neuronal = (
+    METRICAS["Red neuronal"].astype(float).to_numpy() * 100
+)
+
+posiciones = range(len(metricas_eje))
+
+# Paleta azul sobria y trazos ligeros para una lectura más limpia.
+ax.plot(
+    posiciones,
+    valores_logistica,
+    color="#1769AA",
+    marker="o",
+    markersize=4,
+    markeredgewidth=0,
+    linewidth=1.8,
+    label="Regresión logística"
+)
+ax.plot(
+    posiciones,
+    valores_neuronal,
+    color="#78AEDD",
+    marker="o",
+    markersize=4,
+    markeredgewidth=0,
+    linewidth=1.8,
+    label="Red neuronal"
+)
+
+ax.set_xticks(list(posiciones))
+ax.set_xticklabels(metricas_eje, rotation=12, ha="right", fontsize=8)
+ax.set_ylabel("Resultado (%)", fontsize=8, color="#64748B")
+ax.set_ylim(0, 115)
+ax.set_title("Desempeño por métrica", fontsize=10, color="#193650", pad=16)
+ax.grid(axis="y", color="#DCE6F0", linewidth=0.6, alpha=0.8)
+ax.set_axisbelow(True)
+
+# Quitar bordes superiores y derechos para un estilo minimalista.
+ax.spines["top"].set_visible(False)
+ax.spines["right"].set_visible(False)
+ax.spines["left"].set_color("#DCE6F0")
+ax.spines["bottom"].set_color("#DCE6F0")
+ax.tick_params(axis="y", labelsize=8, colors="#64748B", length=0)
+ax.tick_params(axis="x", colors="#475569", length=0, pad=7)
+ax.legend(
+    frameon=False,
+    fontsize=8,
+    loc="upper center",
+    bbox_to_anchor=(0.5, 1.16),
+    ncol=2,
+    handlelength=2
+)
+
+fig.tight_layout(pad=1.4, rect=[0, 0, 1, 0.91])
+
+# No se usa el ancho completo: conserva una presentación más compacta.
+st.pyplot(fig, use_container_width=False)
+plt.close(fig)
 
 st.divider()
 
